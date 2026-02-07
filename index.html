@@ -4,19 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>C4T — Risk Management Terminal</title>
-    
-    <meta name="keywords" content="C4T, calculator 4 traders, risk management, position size calculator, trading terminal, калькулятор трейдера, расчет лота, управление рисками">
-    <meta name="description" content="Professional Risk Management Terminal for traders. Global tool for position sizing and risk control.">
-    
+
+    <meta name="description" content="Professional Risk Management Terminal for traders. Calculate position size and risk globally.">
+    <meta name="keywords" content="C4T, calculator 4 traders, trading terminal, risk management, калькулятор трейдера, расчет лота, управление рисками">
+    <meta name="robots" content="index, follow">
+
     <link rel="icon" type="image/png" href="logo.png">
-    <meta property="og:title" content="C4T — Smart Risk Management">
+    <meta property="og:title" content="C4T — Risk Management Terminal">
+    <meta property="og:description" content="Smart tool for professional traders.">
     <meta property="og:image" content="https://calculator4traders.github.io/logo.png">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
     <style>
         body { background: #0f1a30; color: white; font-family: 'Trebuchet MS', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         .calculator { 
@@ -25,17 +26,6 @@
         }
         .calculator::-webkit-scrollbar { width: 4px; display: block; }
         .calculator::-webkit-scrollbar-thumb { background: #3a4f7a; border-radius: 10px; }
-        
-        /* Стиль для логотипа в модальном окне */
-        .modal-content img {
-            width: 100px;
-            height: 100px;
-            border-radius: 22px;
-            margin-bottom: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
 
         .commission-warning { color: #ff9800; font-size: 12px; margin-bottom: 15px; text-align: center; }
         .input-group { margin-bottom: 15px; }
@@ -78,6 +68,9 @@
             margin-top: 20px; background: #2962ff; color: white;
             border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;
         }
+        .modal-content img {
+            width: 80px; height: 80px; margin-bottom: 15px; border-radius: 15px;
+        }
     </style>
 </head>
 <body>
@@ -112,9 +105,9 @@
 
 <div class="modal" id="infoModal">
     <div class="modal-content">
-        <img src="logo.png" alt="C4T Logo">
+        <img src="logo.png" alt="Logo">
         <h3>C4T Terminal</h3>
-        <p style="font-size: 13px; color: #8a9ab5;">Professional Risk Management Tool</p>
+        <p style="font-size: 13px; color: #8a9ab5;">Professional Trading Assistant</p>
         <div id="qrcode"></div>
         <p style="font-size: 11px; color: #5c6d8a;">Scan to open on mobile</p>
         <button class="close-modal" id="closeModal">CLOSE</button>
@@ -122,14 +115,9 @@
 </div>
 
 <script>
-    // --- ЗАПУТАННАЯ ЗАЩИТА И ЛОГИКА ПРИВЯЗКИ ---
-    (function(_0x1a2b,_0x3c4d){const _0x5e6f=window;const _0x7a8b=btoa('Y2FsY3VsYXRvcjR0cmFkZXJzLmdpdGh1Yi5pbw==');if(_0x5e6f['location']['hostname']!==atob(_0x7a8b)){_0x5e6f['document']['body']['innerHTML']='<div style="background:#0b1222;color:#f44336;padding:100px;text-align:center;font-family:sans-serif;"><h1>ACCESS DENIED</h1><p>This software is licensed only for: '+atob(_0x7a8b)+'</p></div>';throw new Error('Unauthorized');}})(window);
-
-    // Основные переменные терминала
     let balance = 1000, riskPercent = 1, leverage = 10;
     let entryPrice = 50000, stopLoss = 49500, takeProfit = 51000;
-    let yDomain = [48000, 52000];
-    let visibleCount = 100;
+    let yDomain = [48000, 52000], visibleCount = 100;
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const margin = { top: 20, right: 80, bottom: 20, left: 20 };
@@ -153,96 +141,66 @@
 
     function draw() {
         svg.selectAll("*").remove();
-        const rect = svg.node().getBoundingClientRect();
-        const width = rect.width, height = rect.height;
+        const rect = svg.node().getBoundingClientRect(), width = rect.width, height = rect.height;
         const chartW = width - margin.left - margin.right;
-        
         const yScale = d3.scaleLinear().domain(yDomain).range([height - margin.bottom, margin.top]);
 
-        // Сетка
         svg.append("g").attr("transform", `translate(${width - margin.right},0)`)
            .call(d3.axisRight(yScale).ticks(10).tickSize(-chartW).tickFormat(d3.format(".0f")))
            .attr("color", "#1e2b47").selectAll("text").attr("color", "#8a9ab5");
 
         const lines = [
-            { id: 'tp', price: takeProfit, color: '#00e676', label: 'Take Profit' },
+            { id: 'tp', price: takeProfit, color: '#00e676', label: 'TP' },
             { id: 'entry', price: entryPrice, color: '#2962ff', label: 'Entry' },
-            { id: 'sl', price: stopLoss, color: '#ff1744', label: 'Stop Loss' }
+            { id: 'sl', price: stopLoss, color: '#ff1744', label: 'SL' }
         ];
 
         lines.forEach(line => {
             const y = yScale(line.price);
-            const g = svg.append("g").attr("class", "price-line-group");
-
-            g.append("line").attr("class", "price-line")
-                .attr("x1", margin.left).attr("x2", width - margin.right)
-                .attr("y1", y).attr("y2", y).attr("stroke", line.color)
+            const g = svg.append("g");
+            g.append("line").attr("x1", margin.left).attr("x2", width - margin.right).attr("y1", y).attr("y2", y)
+                .attr("stroke", line.color).attr("stroke-width", 2).attr("class", "price-line")
                 .call(d3.drag().on("drag", (e) => {
                     const newPrice = yScale.invert(e.y);
                     if (line.id === 'tp') takeProfit = newPrice;
                     else if (line.id === 'entry') entryPrice = newPrice;
                     else if (line.id === 'sl') stopLoss = newPrice;
-                    updateCalculations();
-                    draw();
+                    updateCalculations(); draw();
                 }));
-
-            g.append("rect").attr("class", "label-bg")
-                .attr("x", width - margin.right + 5).attr("y", y - 10)
-                .attr("width", 70).attr("height", 20).attr("rx", 4);
-
-            g.append("text").attr("class", "label-text")
-                .attr("x", width - margin.right + 10).attr("y", y + 4)
-                .text(Math.round(line.price));
+            g.append("rect").attr("class", "label-bg").attr("x", width - margin.right + 5).attr("y", y - 10).attr("width", 70).attr("height", 20).attr("rx", 4);
+            g.append("text").attr("class", "label-text").attr("x", width - margin.right + 10).attr("y", y + 4).text(Math.round(line.price));
         });
     }
 
-    // Обработчики событий
     window.addEventListener("resize", draw);
     document.querySelectorAll('input').forEach(i => i.addEventListener('input', updateCalculations));
 
-    // Модальное окно и QR
-    const modal = document.getElementById("infoModal");
-    const infoBtn = document.getElementById("infoBtn");
-    const closeBtn = document.getElementById("closeModal");
-
+    const modal = document.getElementById("infoModal"), infoBtn = document.getElementById("infoBtn"), closeBtn = document.getElementById("closeModal");
     infoBtn.onclick = () => {
         modal.style.display = "flex";
         document.getElementById("qrcode").innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), {
-            text: window.location.href,
-            width: 128, height: 128,
-            colorDark: "#ffffff", colorLight: "#1e2b47"
-        });
+        new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 128, height: 128, colorDark: "#ffffff", colorLight: "#1e2b47" });
     };
     closeBtn.onclick = () => modal.style.display = "none";
 
-    // Зум и перетаскивание графика
     let isDragging = false, isPriceScaling = false;
     svg.on("mousedown", (e) => {
         const rect = svg.node().getBoundingClientRect();
-        if (e.clientX - rect.left > rect.width - margin.right) isPriceScaling = true;
+        if ((e.clientX - rect.left) > (rect.width - margin.right)) isPriceScaling = true;
         else isDragging = true;
     });
-
     window.addEventListener("mousemove", (e) => {
         if (isPriceScaling) {
-            const factor = e.movementY * 0.5;
-            yDomain = [yDomain[0] - factor, yDomain[1] + factor];
-            draw();
+            const range = yDomain[1] - yDomain[0], factor = e.movementY * 0.5;
+            yDomain = [yDomain[0] - factor, yDomain[1] + factor]; draw();
         } else if (isDragging) {
-            const range = yDomain[1] - yDomain[0];
-            const shift = (e.movementY / 500) * range;
-            yDomain = [yDomain[0] + shift, yDomain[1] + shift];
-            draw();
+            const range = yDomain[1] - yDomain[0], shift = (e.movementY / 500) * range;
+            yDomain = [yDomain[0] + shift, yDomain[1] + shift]; draw();
         }
     });
-
     window.addEventListener("mouseup", () => { isDragging = false; isPriceScaling = false; });
 
-    // Стартовая инициализация
-    updateCalculations();
-    draw();
+    updateCalculations(); draw();
 </script>
-
 </body>
 </html>
